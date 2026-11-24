@@ -1,0 +1,241 @@
+[1mdiff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..562c375[m
+[1m--- /dev/null[m
+[1m+++ b/.github/workflows/ci.yml[m
+[36m@@ -0,0 +1,12 @@[m
+[32m+[m[32mname: CI[m
+[32m+[m
+[32m+[m[32mon:[m
+[32m+[m[32m  push:[m
+[32m+[m[32m  pull_request:[m
+[32m+[m
+[32m+[m[32mjobs:[m
+[32m+[m[32m  ci:[m
+[32m+[m[32m    runs-on: ubuntu-latest[m
+[32m+[m[32m    steps:[m
+[32m+[m[32m      - name: Check out repository[m
+[32m+[m[32m        uses: actions/checkout@v4[m
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mnew file mode 100644[m
+[1mindex 0000000..12a0d3e[m
+[1m--- /dev/null[m
+[1m+++ b/.gitignore[m
+[36m@@ -0,0 +1,4 @@[m
+[32m+[m[32m.venv/[m
+[32m+[m[32m__pycache__/[m
+[32m+[m[32m.pytest_cache/[m
+[32m+[m[32m.env[m
+[1mdiff --git a/app.py b/app.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..86bdc93[m
+[1m--- /dev/null[m
+[1m+++ b/app.py[m
+[36m@@ -0,0 +1,69 @@[m
+[32m+[m[32m"""A simple in-memory Task Manager."""[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass Task:[m
+[32m+[m[32m    """A single task with an id, a title, and a completed flag."""[m
+[32m+[m
+[32m+[m[32m    def __init__(self, id, title, completed=False):[m
+[32m+[m[32m        self.id = id[m
+[32m+[m[32m        self.title = title[m
+[32m+[m[32m        self.completed = completed[m
+[32m+[m
+[32m+[m[32m    def __repr__(self):[m
+[32m+[m[32m        return f"Task(id={self.id}, title={self.title!r}, completed={self.completed})"[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# In-memory storage[m
+[32m+[m[32m_tasks = [][m
+[32m+[m[32m_next_id = 1[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _find_task(task_id):[m
+[32m+[m[32m    """Return the task with the given id, or raise ValueError if not found."""[m
+[32m+[m[32m    for task in _tasks:[m
+[32m+[m[32m        if task.id == task_id:[m
+[32m+[m[32m            return task[m
+[32m+[m[32m    raise ValueError(f"No task found with id {task_id}")[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef add_task(title):[m
+[32m+[m[32m    """Create a new task and return it. Rejects empty or whitespace-only titles."""[m
+[32m+[m[32m    global _next_id[m
+[32m+[m
+[32m+[m[32m    if not isinstance(title, str):[m
+[32m+[m[32m        raise ValueError("Task title must be a string")[m
+[32m+[m
+[32m+[m[32m    title = title.strip()[m
+[32m+[m[32m    if not title:[m
+[32m+[m[32m        raise ValueError("Task title cannot be empty")[m
+[32m+[m
+[32m+[m[32m    task = Task(_next_id, title)[m
+[32m+[m[32m    _tasks.append(task)[m
+[32m+[m[32m    _next_id += 1[m
+[32m+[m[32m    return task[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef get_tasks():[m
+[32m+[m[32m    """Return a copy of the list of all tasks."""[m
+[32m+[m[32m    return list(_tasks)[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef complete_task(task_id):[m
+[32m+[m[32m    """Mark a task as completed and return it."""[m
+[32m+[m[32m    task = _find_task(task_id)[m
+[32m+[m[32m    task.completed = True[m
+[32m+[m[32m    return task[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef delete_task(task_id):[m
+[32m+[m[32m    """Remove a task from storage and return it."""[m
+[32m+[m[32m    task = _find_task(task_id)[m
+[32m+[m[32m    _tasks.remove(task)[m
+[32m+[m[32m    return task[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef reset_tasks():[m
+[32m+[m[32m    """Clear all tasks and reset the id counter. Useful for tests."""[m
+[32m+[m[32m    global _next_id[m
+[32m+[m[32m    _tasks.clear()[m
+[32m+[m[32m    _next_id = 1[m
+[1mdiff --git a/requirements.txt b/requirements.txt[m
+[1mnew file mode 100644[m
+[1mindex 0000000..3fdf1e1[m
+[1m--- /dev/null[m
+[1m+++ b/requirements.txt[m
+[36m@@ -0,0 +1 @@[m
+[32m+[m[32mpytest==9.2.0[m
+[1mdiff --git a/test_app.py b/test_app.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..fff8478[m
+[1m--- /dev/null[m
+[1m+++ b/test_app.py[m
+[36m@@ -0,0 +1,160 @@[m
+[32m+[m[32m"""Tests for the in-memory Task Manager in app.py."""[m
+[32m+[m
+[32m+[m[32mimport pytest[m
+[32m+[m
+[32m+[m[32mimport app[m
+[32m+[m
+[32m+[m
+[32m+[m[32m@pytest.fixture(autouse=True)[m
+[32m+[m[32mdef clean_storage():[m
+[32m+[m[32m    """Give every test a fresh, empty task list and reset ids."""[m
+[32m+[m[32m    app.reset_tasks()[m
+[32m+[m[32m    yield[m
+[32m+[m[32m    app.reset_tasks()[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# --- Creating tasks ---[m
+[32m+[m
+[32m+[m[32mdef test_add_task_returns_task_with_title_and_id():[m
+[32m+[m[32m    task = app.add_task("Buy milk")[m
+[32m+[m
+[32m+[m[32m    assert isinstance(task, app.Task)[m
+[32m+[m[32m    assert task.title == "Buy milk"[m
+[32m+[m[32m    assert task.id == 1[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_add_task_stores_task():[m
+[32m+[m[32m    task = app.add_task("Buy milk")[m
+[32m+[m
+[32m+[m[32m    assert app.get_tasks() == [task][m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_add_task_strips_whitespace():[m
+[32m+[m[32m    task = app.add_task("  Buy milk  ")[m
+[32m+[m
+[32m+[m[32m    assert task.title == "Buy milk"[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_new_task_is_incomplete_by_default():[m
+[32m+[m[32m    task = app.add_task("Buy milk")[m
+[32m+[m
+[32m+[m[32m    assert task.completed is False[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# --- Retrieving tasks ---[m
+[32m+[m
+[32m+[m[32mdef test_get_tasks_returns_all_in_order():[m
+[32m+[m[32m    app.add_task("First")[m
+[32m+[m[32m    app.add_task("Second")[m
+[32m+[m[32m    app.add_task("Third")[m
+[32m+[m
+[32m+[m[32m    tasks = app.get_tasks()[m
+[32m+[m
+[32m+[m[32m    assert [t.title for t in tasks] == ["First", "Second", "Third"][m
+[32m+[m[32m    assert [t.id for t in tasks] == [1, 2, 3][m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_get_tasks_empty_when_no_tasks():[m
+[32m+[m[32m    assert app.get_tasks() == [][m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_get_tasks_returns_copy():[m
+[32m+[m[32m    app.add_task("Buy milk")[m
+[32m+[m
+[32m+[m[32m    tasks = app.get_tasks()[m
+[32m+[m[32m    tasks.clear()[m
+[32m+[m
+[32m+[m[32m    assert len(app.get_tasks()) == 1[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# --- Completing tasks ---[m
+[32m+[m
+[32m+[m[32mdef test_complete_task_marks_completed():[m
+[32m+[m[32m    task = app.add_task("Buy milk")[m
+[32m+[m
+[32m+[m[32m    result = app.complete_task(task.id)[m
+[32m+[m
+[32m+[m[32m    assert result is task[m
+[32m+[m[32m    assert result.completed is True[m
+[32m+[m[32m    assert app.get_tasks()[0].completed is True[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_complete_task_only_affects_target():[m
+[32m+[m[32m    first = app.add_task("First")[m
+[32m+[m[32m    second = app.add_task("Second")[m
+[32m+[m
+[32m+[m[32m    app.complete_task(first.id)[m
+[32m+[m
+[32m+[m[32m    assert first.completed is True[m
+[32m+[m[32m    assert second.completed is False[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# --- Deleting tasks ---[m
+[32m+[m
+[32m+[m[32mdef test_delete_task_removes_task():[m
+[32m+[m[32m    task = app.add_task("Buy milk")[m
+[32m+[m
+[32m+[m[32m    result = app.delete_task(task.id)[m
+[32m+[m
+[32m+[m[32m    assert result is task[m
+[32m+[m[32m    assert app.get_tasks() == [][m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_delete_task_keeps_other_tasks():[m
+[32m+[m[32m    app.add_task("First")[m
+[32m+[m[32m    app.add_task("Second")[m
+[32m+[m[32m    app.add_task("Third")[m
+[32m+[m
+[32m+[m[32m    app.delete_task(2)[m
+[32m+[m
+[32m+[m[32m    assert [t.id for t in app.get_tasks()] == [1, 3][m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_ids_not_reused_after_delete():[m
+[32m+[m[32m    app.add_task("First")[m
+[32m+[m[32m    app.add_task("Second")[m
+[32m+[m[32m    app.delete_task(2)[m
+[32m+[m
+[32m+[m[32m    new_task = app.add_task("Third")[m
+[32m+[m
+[32m+[m[32m    assert new_task.id == 3[m
+[32m+[m
+[32m+[m
+[32m+[m[32m# --- Rejecting invalid titles ---[m
+[32m+[m
+[32m+[m[32m@pytest.mark.parametrize("title", ["
